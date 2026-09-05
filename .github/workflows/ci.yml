@@ -30,12 +30,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 选 Xcode 26
+      - name: 选 runner 上最高版本的 Xcode
+        # 不能写死 /Applications/Xcode_26.app —— 那在 macos-26 runner 上是
+        # 26.0.1，而 Hako 文档标称在 26.6 验证过。26.0.1 的 nm 不接受
+        # build_libbox 用的 `nm -arch all -a`，SDK 编到一半会挂在符号校验。
+        # 这里按版本号排序挑最高的一个，并把可选列表打出来备查。
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.app 2>/dev/null \
-            || sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | head -1)" \
-            || echo "用默认 Xcode"
+          echo "runner 上的 Xcode:"; ls -d /Applications/Xcode*.app
+          BEST=$(ls -d /Applications/Xcode_*.app 2>/dev/null \
+                 | sed 's#.*/Xcode_##; s#\.app$##' | sort -V | tail -1)
+          if [ -n "$BEST" ] && [ -d "/Applications/Xcode_$BEST.app" ]; then
+            sudo xcode-select -s "/Applications/Xcode_$BEST.app"
+          fi
           xcodebuild -version
+          echo "nm: $(xcrun -f nm)"
 
       - name: swift test
         working-directory: apple/ShenxianyunKit
@@ -92,12 +100,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 选 Xcode 26
+      - name: 选 runner 上最高版本的 Xcode
+        # 不能写死 /Applications/Xcode_26.app —— 那在 macos-26 runner 上是
+        # 26.0.1，而 Hako 文档标称在 26.6 验证过。26.0.1 的 nm 不接受
+        # build_libbox 用的 `nm -arch all -a`，SDK 编到一半会挂在符号校验。
+        # 这里按版本号排序挑最高的一个，并把可选列表打出来备查。
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.app 2>/dev/null \
-            || sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | head -1)" \
-            || echo "用默认 Xcode"
+          echo "runner 上的 Xcode:"; ls -d /Applications/Xcode*.app
+          BEST=$(ls -d /Applications/Xcode_*.app 2>/dev/null \
+                 | sed 's#.*/Xcode_##; s#\.app$##' | sort -V | tail -1)
+          if [ -n "$BEST" ] && [ -d "/Applications/Xcode_$BEST.app" ]; then
+            sudo xcode-select -s "/Applications/Xcode_$BEST.app"
+          fi
           xcodebuild -version
+          echo "nm: $(xcrun -f nm)"
 
       - name: 装 XcodeGen 与 PyYAML
         run: |

@@ -94,6 +94,42 @@ xcodebuild -project apple/HakoClient/HakoClient.xcodeproj \
    比最近的 `v*-hako.N` 标签新，所以 `build_libbox` 不打正式 SDK。这是上游自己的选法
    （其源码分发本就是 pre-release）。正式发版前若要正式 SDK，需把 pin 移到带标签的 revision。
 
+## CI 门禁
+
+工作流：[`.github/workflows/ci.yml`](.github/workflows/ci.yml)，名字 **CI**。
+触发：任意分支 push、PR、以及 `workflow_dispatch` 手动对某个分支跑。
+
+**它只验证编译与测试，不做任何发布动作** —— 不改版本号、不打 tag、不建 Release、
+不碰分发入口。按族内规范，验证编译与发布必须分开。
+
+| Job | 干什么 | 大概耗时 |
+|---|---|---|
+| `ShenxianyunKit 单测` | `swift test`，并检查测试数不少于 30（防"零测试通过"） | 快 |
+| `品牌注入一致性` | `brand-apply.py --check` 必须报「无改动」；且全仓库不得残留 `org.example.hako` | 快 |
+| `iOS 无签名编译` | bootstrap → configure → 无签名 Release 编译 → **核对产物的显示名/BundleID/scheme 真的是神仙云** | 慢（首次约需编内核 SDK） |
+
+### 两个刻意的设计
+
+1. **三个 job 互不依赖（没有 `needs:`）。** 串起来的话前一个失败会让后面显示
+   `skipped`，而 `skipped` 在汇总视图里很容易被读成"失败"——族内 PC 线的
+   Frontend Check 就踩过这个坑。多花点 macOS 机时换无歧义的结论，值。
+2. **编译完之后要读产物的 `Info.plist` 再断言一次。** 只看 `project.yml` 不够，
+   真正要保证的是编出来的 `.app` 带着神仙云标识。
+
+### 缓存
+
+内核 SDK 缓存在 `.build`，key 挂 `Dependencies.lock.json` 的哈希。
+`bootstrap.py` 会校验 `sdk-inventory.json` 后复用已有的 `Hako.xcframework`，
+所以 lock 没变时整个内核编译会被跳过；换了 kernel/adapter revision 缓存自动失效。
+
+### 本地跑同样的检查
+
+```sh
+(cd apple/ShenxianyunKit && swift test)
+python3 scripts/brand-apply.py --check     # 必须报「无改动，已是目标状态」
+bash ../ops/hako-apple-sdk-20260905/bootstrap-shenxianyun-apple.sh
+```
+
 ## 后端对接
 
 后端是 vpn-web（sxnn 线 `api.sxnn.de:5443`）。**订阅走 `/sub/<提取码>` 的 Clash 原文**，

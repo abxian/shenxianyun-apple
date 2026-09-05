@@ -1,0 +1,182 @@
+name: CI
+
+# 无签名编译与测试门禁。刻意不做任何发布动作：不改版本号、不打 tag、
+# 不建 Release、不传分发入口——按族内规范，验证编译与发布必须分开。
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+# 同一分支的新推送取消旧运行，别让 macOS 机时堆在过时的提交上。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUNDLE_BASE: de.sxnn.shenxianyun
+
+jobs:
+  # 三个 job 故意**互不依赖**。用 needs: 串起来的话，前一个失败会让后面显示
+  # "skipped"，而 skipped 在汇总视图里很容易被读成"失败"——族内 PC 线的
+  # Frontend Check 就踩过这个坑（fail-fast 让测试全 skipped 冒充失败）。
+  # 每个 job 各自给出独立、无歧义的结论，比省几分钟机时重要。
+
+  kit-tests:
+    name: ShenxianyunKit 单测
+    # 必须跑 macOS：ShenxianyunKit 解析流量 JSON 时依赖 NSNumber 的桥接行为，
+    # Linux 版 Foundation 在这里与真实目标平台不一致，跑过了也不算数。
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 选 Xcode 26
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.app 2>/dev/null \
+            || sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | head -1)" \
+            || echo "用默认 Xcode"
+          xcodebuild -version
+
+      - name: swift test
+        working-directory: apple/ShenxianyunKit
+        run: swift test 2>&1 | tee /tmp/kit-test.log
+
+      - name: 确认测试真的跑了
+        # swift test 在没有测试目标时也会 exit 0。这一步防止"零测试"被当成通过。
+        #
+        # 注意取的是**最大值**不是第一条：日志里每个 test suite 结束都会打一行
+        # "Executed N tests"，第一条是单个 suite 的数（本仓库是 4），
+        # 只有最后的汇总行才是总数。取 head -1 会让门禁按 4 去比 30，直接误判红。
+        run: |
+          grep -qE "Executed [0-9]+ tests" /tmp/kit-test.log || {
+            echo "::error::没有看到测试执行统计，可能一个测试都没跑"; exit 1; }
+          COUNT=$(grep -oE "Executed [0-9]+ tests" /tmp/kit-test.log \
+                  | grep -oE "[0-9]+" | sort -n | tail -1)
+          echo "执行了 $COUNT 个测试"
+          [ "$COUNT" -ge 30 ] || {
+            echo "::error::测试数 $COUNT 少于预期的 30，是不是有测试目标没被编进来"; exit 1; }
+
+  brand-check:
+    name: 品牌注入一致性
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 装 XcodeGen 与 PyYAML
+        run: |
+          brew install xcodegen
+          python3 -m venv /tmp/venv
+          /tmp/venv/bin/pip install --quiet PyYAML
+
+      - name: brand-apply --check 必须报「无改动」
+        # 门禁的意义：有人手改了 project.yml 或某个 Identifiers.swift、
+        # 却没同步 site-profile.properties，这里就会挡下来。
+        run: |
+          /tmp/venv/bin/python3 scripts/brand-apply.py --check 2>&1 | tee /tmp/brand.log
+          grep -q "无改动，已是目标状态" /tmp/brand.log || {
+            echo "::error::工程与 site-profile.properties 不一致。"
+            echo "::error::本地跑 python3 scripts/brand-apply.py 重新注入后再提交。"
+            exit 1; }
+
+      - name: 不该残留上游占位标识
+        run: |
+          if grep -rn "org\.example\.hako" apple/ --include="*.swift" --include="*.yml"; then
+            echo "::error::还有上游占位标识 org.example.hako 没被替换"; exit 1
+          fi
+          echo "无残留"
+
+  ios-build:
+    name: iOS 无签名编译
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 选 Xcode 26
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.app 2>/dev/null \
+            || sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | head -1)" \
+            || echo "用默认 Xcode"
+          xcodebuild -version
+
+      - name: 装 XcodeGen 与 PyYAML
+        run: |
+          brew install xcodegen
+          python3 -m venv /tmp/venv
+          /tmp/venv/bin/pip install --quiet PyYAML
+
+      - name: 装 bind 模块钉住的 Go 工具链
+        # bind/hako 的 go.mod 钉死 toolchain go1.26.6。只有 GOTOOLCHAIN=auto
+        # 下到模块缓存里的那份是不够的——build_libbox 要往 Go 源码树做 overlay，
+        # 而 GOMODCACHE 下是只读的，五个切片一个都编不出来。必须真装一份。
+        run: |
+          go install golang.org/dl/go1.26.6@latest
+          "$(go env GOPATH)/bin/go1.26.6" download
+          "$(go env GOPATH)/bin/go1.26.6" version
+
+      - name: 缓存内核 SDK 与 Go 构建产物
+        # bootstrap.py 会校验 sdk-inventory.json 后复用已有的 Hako.xcframework，
+        # 所以 lock 没变时能整个跳过内核编译。key 挂在 Dependencies.lock.json 上，
+        # 换了 kernel/adapter revision 会自动失效重建。
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/go/pkg/mod
+            ~/Library/Caches/go-build
+          key: hako-sdk-${{ runner.os }}-${{ hashFiles('Dependencies.lock.json') }}
+          restore-keys: hako-sdk-${{ runner.os }}-
+
+      - name: bootstrap（拉钉住的内核/Adapter，必要时编五切片 SDK）
+        run: |
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          /tmp/venv/bin/python3 scripts/bootstrap.py
+
+      - name: configure（XcodeGen 生成工程）
+        run: /tmp/venv/bin/python3 scripts/configure.py --bundle-base "$BUNDLE_BASE"
+
+      - name: 列出 scheme
+        run: xcodebuild -project apple/HakoClient/HakoClient.xcodeproj -list
+
+      - name: 编译 HakoClient（iOS Simulator，无签名）
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project apple/HakoClient/HakoClient.xcodeproj \
+            -scheme HakoClient -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build > /tmp/xcodebuild.log 2>&1 || true
+          echo "================ 真实 error: 行 ================"
+          grep -nE "error: " /tmp/xcodebuild.log | head -40 || echo "（无）"
+          echo "================ 日志尾部 ================"
+          tail -30 /tmp/xcodebuild.log
+          grep -q "BUILD SUCCEEDED" /tmp/xcodebuild.log \
+            || { echo "::error::编译失败，见上面的 error: 行"; exit 1; }
+          echo "BUILD SUCCEEDED"
+
+      - name: 核对产物的品牌确实生效
+        # 只看 project.yml 不够——真正要保证的是编出来的 .app 带着神仙云标识。
+        run: |
+          APP=$(find ~/Library/Developer/Xcode/DerivedData -type d \
+                 -path "*Release-iphonesimulator/HakoClient.app" | head -1)
+          test -n "$APP" || { echo "::error::找不到编译产物"; exit 1; }
+          NAME=$(plutil -extract CFBundleDisplayName raw "$APP/Info.plist")
+          ID=$(plutil -extract CFBundleIdentifier raw "$APP/Info.plist")
+          SCHEME=$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$APP/Info.plist")
+          echo "显示名=$NAME  BundleID=$ID  scheme=$SCHEME"
+          [ "$NAME" = "神仙云" ] || { echo "::error::显示名不是神仙云"; exit 1; }
+          [ "$ID" = "$BUNDLE_BASE" ] || { echo "::error::Bundle ID 不对"; exit 1; }
+          [ "$SCHEME" = "shenxianyun" ] || { echo "::error::URL scheme 不对"; exit 1; }
+          echo "三个 Extension:"
+          for p in "$APP/PlugIns/"*.appex; do
+            echo "  $(basename "$p"): $(plutil -extract CFBundleIdentifier raw "$p/Info.plist")"
+          done
+
+      - name: 失败时留下完整编译日志
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: /tmp/xcodebuild.log
+          retention-days: 7

@@ -25,6 +25,8 @@ packages:
     path: ../HakoClientUI
   HakoMacClient:
     path: ../HakoMacClient
+  ShenxianyunKit:
+    path: ../ShenxianyunKit
 targets:
   HakoClient:
     type: application
@@ -117,6 +119,7 @@ targets:
         com.apple.developer.ubiquity-container-identifiers:
         - $(HAKO_ICLOUD_CONTAINER)
     dependencies:
+    - package: ShenxianyunKit
     - package: HakoClientKit
     - package: HakoClientUI
     - framework: ../../Hako.xcframework
@@ -166,6 +169,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.networkextension.packet-tunnel
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PacketTunnelProvider
     dependencies:
+    - package: ShenxianyunKit
     - framework: ../../Hako.xcframework
       embed: false
     - sdk: NetworkExtension.framework
@@ -354,6 +358,7 @@ targets:
         com.apple.developer.ubiquity-container-identifiers:
         - $(HAKO_ICLOUD_CONTAINER)
     dependencies:
+    - package: ShenxianyunKit
     - package: HakoClientKit
     - package: HakoClientUI
     - package: HakoMacClient
@@ -472,6 +477,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.networkextension.packet-tunnel
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PacketTunnelProvider
     dependencies:
+    - package: ShenxianyunKit
     - framework: ../../Hako.xcframework
       embed: false
     - sdk: NetworkExtension.framework
@@ -594,6 +600,7 @@ targets:
         com.apple.developer.networking.networkextension:
         - packet-tunnel-provider
     dependencies:
+    - package: ShenxianyunKit
     - package: HakoClientKit
     - framework: ../../Hako.xcframework
       embed: false
@@ -642,6 +649,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.networkextension.packet-tunnel
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PacketTunnelProvider
     dependencies:
+    - package: ShenxianyunKit
     - framework: ../../Hako.xcframework
       embed: false
     - sdk: NetworkExtension.framework

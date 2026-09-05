@@ -111,6 +111,59 @@ def apply_project_yml(project, profile, base):
     return changed
 
 
+GENERATED_PROFILE = ROOT / 'apple/ShenxianyunKit/Sources/ShenxianyunKit/Generated/ShenxianyunProfile.swift'
+
+PROFILE_TEMPLATE = '''// 由 scripts/brand-apply.py 从根目录 site-profile.properties 生成。
+// 不要手改——下次 brand-apply 会覆盖。要改值改 site-profile.properties。
+import Foundation
+
+public enum ShenxianyunProfile {{
+    /// 站点标识，用于区分 sxnn / 52nm 等品牌。
+    public static let id = "{profile_id}"
+
+    /// 展示名。
+    public static let appName = "{app_name}"
+
+    /// Bundle ID 家族。
+    public static let bundleBase = "{bundle_base}"
+
+    /// App Group。**Extension 靠它读设备凭据**，不能用 UserDefaults.standard。
+    public static let appGroup = "group.{bundle_base}"
+
+    /// 内置的引导 API 地址。客户端只内置这一个，
+    /// 启动后一律以 /api/endpoints 下发的为准；换线路改后台即可，不必发新版。
+    public static let bootstrapAPI = URL(string: "{api_bootstrap}")!
+
+    /// 上报给后端的平台标识（exchange 的 platform 字段）。
+    public static let platform: String = {{
+        #if os(tvOS)
+            return "tvos"
+        #elseif os(macOS)
+            return "macos"
+        #else
+            return "ios"
+        #endif
+    }}()
+}}
+'''
+
+
+def render_profile_constants(profile, check):
+    """把 site-profile 的值烧进 ShenxianyunKit，业务代码就不必再解析 properties。"""
+    rendered = PROFILE_TEMPLATE.format(
+        profile_id=profile['profile.id'],
+        app_name=profile['app.name'],
+        bundle_base=profile['bundle.base'],
+        api_bootstrap=profile.get('api.bootstrap', ''),
+    )
+    if GENERATED_PROFILE.exists() and GENERATED_PROFILE.read_text(encoding='utf-8') == rendered:
+        return []
+    if not check:
+        GENERATED_PROFILE.parent.mkdir(parents=True, exist_ok=True)
+        GENERATED_PROFILE.write_text(rendered, encoding='utf-8')
+    return ['%s: 重新生成常量' % GENERATED_PROFILE.relative_to(ROOT)]
+
+
 def rewrite_hardcoded_sources(old, new, check):
     """configure.py 覆盖不到的那批文件。跳过两个 Identifiers.swift——它们归 configure.py 管。"""
     changed = []
@@ -146,6 +199,7 @@ def main():
 
     changed = apply_project_yml(project, profile, new)
     changed += rewrite_hardcoded_sources(old, new, args.check)
+    changed += render_profile_constants(profile, args.check)
 
     if not changed:
         print('无改动，已是目标状态。')

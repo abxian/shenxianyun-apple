@@ -102,11 +102,24 @@ xcodebuild -project apple/HakoClient/HakoClient.xcodeproj \
 **它只验证编译与测试，不做任何发布动作** —— 不改版本号、不打 tag、不建 Release、
 不碰分发入口。按族内规范，验证编译与发布必须分开。
 
-| Job | 干什么 | 大概耗时 |
+| Job | 干什么 | 实测耗时（2026-09-05 首次全绿） |
 |---|---|---|
-| `ShenxianyunKit 单测` | `swift test`，并检查测试数不少于 30（防"零测试通过"） | 快 |
-| `品牌注入一致性` | `brand-apply.py --check` 必须报「无改动」；且全仓库不得残留 `org.example.hako` | 快 |
-| `iOS 无签名编译` | bootstrap → configure → 无签名 Release 编译 → **核对产物的显示名/BundleID/scheme 真的是神仙云** | 慢（首次约需编内核 SDK） |
+| `品牌注入一致性` | `brand-apply.py --check` 必须报「无改动」；且全仓库不得残留 `org.example.hako` | 14 秒 |
+| `ShenxianyunKit 单测` | `swift test`，并检查测试数不少于 30（防"零测试通过"） | 58 秒 |
+| `iOS 无签名编译` | bootstrap → configure → 无签名 Release 编译 → **核对产物的显示名/BundleID/scheme 真的是神仙云** | 19 分 21 秒（首次无缓存，含编内核 SDK） |
+
+### ⚠ Xcode 版本：别写死路径
+
+`/Applications/Xcode_26.app` 在 macos-26 runner 上是 **26.0.1**，
+而那版的 `nm` 不接受 `build_libbox` 用的 `nm -arch all -a`，
+SDK 会编到一半挂在符号校验（`xcrun nm ...: exit status 1`）。
+
+工作流改成列出 `/Applications/Xcode_*.app` 按版本号排序取最高。
+2026-09-05 实测 runner 上有 26.0 / 26.0.1 / 26.1 / 26.1.1 / 26.2 / 26.2.0 / 26.3 / 26.3.0，
+选中 **26.3**，SDK 正常编出。
+
+**存在版本偏移**：CI 用 26.3，本机是 26.6，而 Hako 文档标称在 26.6 验证过。
+目前两边都能编出来，但真出现只在某一版复现的问题时，先怀疑这里。
 
 ### 两个刻意的设计
 

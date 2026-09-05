@@ -8,12 +8,12 @@ import SwiftUI
 struct ShenxianyunHomeView: View {
     @ObservedObject var vpn: VPNController
     @ObservedObject var profiles: ProfilesViewModel
+    @ObservedObject var command: ClashCommandClient
     let client: ShenxianyunClient
     /// 进入上游那套完整界面（节点选择、设置都在里面）。
     let openUpstream: () -> Void
 
     @State private var showsImport = false
-    @State private var isGlobalMode = false
     @State private var isWorking = false
     @State private var notice: String?
     @State private var accessCode: String?
@@ -61,7 +61,10 @@ struct ShenxianyunHomeView: View {
                             .padding(.top, 8)
                     }
 
-                    SXYModePicker(isGlobal: $isGlobalMode)
+                    SXYModePicker(
+                        mode: command.mode,
+                        isEnabled: command.isConnected,
+                        select: setMode)
                         .padding(.horizontal, 20)
                         .padding(.top, 18)
 
@@ -196,6 +199,21 @@ struct ShenxianyunHomeView: View {
             }
             profiles.installSubscription(url.absoluteString)
             notice = "已请求更新节点"
+        }
+    }
+
+    /// 模式切换直接下到内核。失败时把原因显示出来——静默失败会让用户
+    /// 以为切过去了，实际流量还走着旧模式。
+    private func setMode(_ mode: String) {
+        guard command.mode.lowercased() != mode else { return }
+        Task {
+            let ok = await command.setMode(mode)
+            if !ok {
+                notice = command.lastError.isEmpty
+                    ? "模式切换失败，请稍后重试" : command.lastError
+            } else {
+                notice = nil
+            }
         }
     }
 

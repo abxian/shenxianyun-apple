@@ -138,3 +138,38 @@ extension APITransport {
         _ = try decodeEnvelope(response)
     }
 }
+
+extension TrafficCounter {
+    /// 解析 Hako 的 `TrafficJSON()`，取出累计上下行。
+    ///
+    /// 放在这里而不是 Extension 里，是为了能被单测覆盖：
+    /// `JSONSerialization` 给出的是 `NSNumber`，直接 `as? Int64` 在不同数值
+    /// （小整数、超过 Int32 的大值、被写成浮点的值）下行为并不一致，
+    /// 一旦静默失败就表现为「流量永远上报不出去，且没有任何报错」——
+    /// 这种沉默的坑必须有测试盯着。
+    ///
+    /// 字段名见 Hako `bind/hako/command.go` 的 `TrafficJSON`。
+    public static func parseTotals(fromTrafficJSON json: String)
+        -> (up: Int64, down: Int64)?
+    {
+        guard let data = json.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data),
+              let root = object as? [String: Any]
+        else { return nil }
+        guard let up = int64(root["upTotal"]), let down = int64(root["downTotal"])
+        else { return nil }
+        // 累计值不可能为负；出现负数说明内核那边读数异常，宁可不报也别送脏数据。
+        guard up >= 0, down >= 0 else { return nil }
+        return (up, down)
+    }
+
+    private static func int64(_ value: Any?) -> Int64? {
+        switch value {
+        case let number as NSNumber: return number.int64Value
+        case let number as Int64: return number
+        case let number as Int: return Int64(number)
+        case let text as String: return Int64(text)
+        default: return nil
+        }
+    }
+}

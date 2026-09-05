@@ -117,24 +117,31 @@ struct SXYPowerButton: View {
 }
 
 /// 规则 / 全局模式切换，对应安卓的 `MaterialButtonToggleGroup`。
+///
+/// 选中态直接反映**内核当前的 mode**，不维护本地状态：模式是内核的事实，
+/// 本地存一份只会在切换失败或外部改动时和内核不一致。
+/// 隧道没起来时 Clash API 不可用，此时禁用交互而不是让用户点了没反应。
 struct SXYModePicker: View {
-    @Binding var isGlobal: Bool
+    /// 内核当前模式：`rule` / `global` / `direct`；未连接时上游给的是 `—`。
+    let mode: String
+    let isEnabled: Bool
+    let select: (String) -> Void
 
     var body: some View {
         HStack(spacing: 0) {
-            segment(title: "规则模式", selected: !isGlobal) { isGlobal = false }
-            segment(title: "全局模式", selected: isGlobal) { isGlobal = true }
+            segment(title: "规则模式", id: "rule")
+            segment(title: "全局模式", id: "global")
         }
         .padding(3)
-        .background(
-            Capsule().fill(SXYTheme.surfaceSoft))
+        .background(Capsule().fill(SXYTheme.surfaceSoft))
         .overlay(Capsule().stroke(SXYTheme.surfaceStrokeSoft, lineWidth: 1))
+        .opacity(isEnabled ? 1 : 0.55)
+        .allowsHitTesting(isEnabled)
     }
 
-    private func segment(title: String, selected: Bool, action: @escaping () -> Void)
-        -> some View
-    {
-        Button(action: action) {
+    private func segment(title: String, id: String) -> some View {
+        let selected = mode.lowercased() == id
+        return Button { select(id) } label: {
             Text(title)
                 .font(.system(size: 14, weight: selected ? .semibold : .regular))
                 .foregroundStyle(selected ? .white : SXYTheme.textMuted)

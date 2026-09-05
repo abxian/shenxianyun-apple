@@ -1,4 +1,5 @@
 @preconcurrency import Hako
+import ShenxianyunKit
 import Network
 import NetworkExtension
 import os.log
@@ -264,6 +265,8 @@ final class ExtensionProvider: NSObject {
             try await start0()
             try lifecycle.didStart()
             StartupMemorySampler.shared.mark("tunnel-up")
+            // 隧道真正起来之后才开始上报心跳，失败路径不会误报在线。
+            await ShenxianyunTelemetryReporter.shared.tunnelDidStart()
             await operationGate.leave()
         } catch {
              
@@ -584,6 +587,9 @@ final class ExtensionProvider: NSObject {
     }
 
     func stop(reason: NEProviderStopReason) async {
+        // 在拿 operationGate 之前先停上报并补发下线：
+        // 拆隧道可能要等一会儿，那期间不该再发心跳说自己在线。
+        await ShenxianyunTelemetryReporter.shared.tunnelWillStop()
         await operationGate.enter()
         guard lifecycle.beginStop() else {
             await operationGate.leave()

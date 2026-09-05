@@ -572,7 +572,8 @@ struct AppShellView: View {
                     }
             } else {
                 ShenxianyunHomeView(
-                    vpn: vpn, profiles: profiles, client: shenxianyunClient,
+                    vpn: vpn, profiles: profiles, command: command,
+                    client: shenxianyunClient,
                     openUpstream: { showsUpstreamShell = true })
             }
         }

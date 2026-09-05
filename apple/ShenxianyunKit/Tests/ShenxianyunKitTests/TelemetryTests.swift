@@ -186,3 +186,47 @@ final class TelemetryRequestTests: XCTestCase {
         }
     }
 }
+
+final class TrafficJSONParsingTests: XCTestCase {
+    /// Hako `TrafficJSON()` 的真实形状（见 bind/hako/command.go）。
+    private func json(up: String, down: String) -> String {
+        """
+        {"up":123,"down":456,"upTotal":\(up),"downTotal":\(down),"memory":6111904}
+        """
+    }
+
+    func testParsesRealShape() {
+        let totals = TrafficCounter.parseTotals(
+            fromTrafficJSON: json(up: "1024", down: "4096"))
+        XCTAssertEqual(totals?.up, 1024)
+        XCTAssertEqual(totals?.down, 4096)
+    }
+
+    /// 这条是本组测试存在的理由：超过 Int32 的累计值必须原样取到。
+    /// 长时间连接下 upTotal 轻易过 2^31，若 NSNumber 转换出错就会静默丢数。
+    func testParsesValuesBeyondInt32() {
+        let big = "9876543210"   // ~9.8G，远超 Int32
+        let totals = TrafficCounter.parseTotals(
+            fromTrafficJSON: json(up: big, down: big))
+        XCTAssertEqual(totals?.up, 9_876_543_210)
+        XCTAssertEqual(totals?.down, 9_876_543_210)
+    }
+
+    func testParsesZero() {
+        let totals = TrafficCounter.parseTotals(fromTrafficJSON: json(up: "0", down: "0"))
+        XCTAssertEqual(totals?.up, 0)
+        XCTAssertEqual(totals?.down, 0)
+    }
+
+    /// 内核读数异常时宁可不报，也别把负数送给后端（后端会 400）。
+    func testRejectsNegative() {
+        XCTAssertNil(TrafficCounter.parseTotals(fromTrafficJSON: json(up: "-1", down: "10")))
+    }
+
+    func testRejectsMissingFieldsAndGarbage() {
+        XCTAssertNil(TrafficCounter.parseTotals(fromTrafficJSON: #"{"up":1,"down":2}"#))
+        XCTAssertNil(TrafficCounter.parseTotals(fromTrafficJSON: "not json"))
+        XCTAssertNil(TrafficCounter.parseTotals(fromTrafficJSON: ""))
+        XCTAssertNil(TrafficCounter.parseTotals(fromTrafficJSON: "[]"))
+    }
+}

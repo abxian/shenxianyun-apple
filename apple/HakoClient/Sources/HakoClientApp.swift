@@ -1,4 +1,5 @@
 import Combine
+import ShenxianyunKit
 import HakoClientUI
 import SwiftUI
 import UIKit
@@ -119,6 +120,18 @@ struct AppShellView: View {
     @StateObject private var profileImports = ProfileImportRouter()
     @State private var navigationState = HakoClientUI.AppleClientNavigationState()
 
+    /// 神仙云后端客户端。存储走 App Group——Network Extension 也要读设备凭据。
+    /// App Group 拿不到时退回内存存储：此时提取码不会持久化，但 UI 仍可用，
+    /// 不至于整个应用起不来（真机上没配对 App Group 才会走到这条分支）。
+    private let shenxianyunClient: ShenxianyunClient = {
+        let store: ShenxianyunStore =
+            AppGroupStore(suiteName: ShenxianyunProfile.appGroup) ?? InMemoryStore()
+        return ShenxianyunClient(store: store)
+    }()
+
+    /// false = 显示神仙云主界面；true = 进入上游那套完整界面。
+    @State private var showsUpstreamShell = false
+
     init() {
         let vpn = VPNController()
         _vpn = StateObject(wrappedValue: vpn)
@@ -227,9 +240,15 @@ struct AppShellView: View {
          
          
         .environment(\.locale, preferences.language.locale)
-        .preferredColorScheme(preferences.themeMode.colorScheme)
+        // 神仙云配色是纯浅色的（照搬安卓），全应用锁 light。
+        // 这里必须连上游那套界面一起锁：否则从浅色的神仙云主界面点进
+        // 深色的「选择节点」「设置」，观感会严重割裂。
+        // 同理，每个 sheet/alert 都要单独带 .shenxianyunLight()——
+        // 见 SXYTheme 里记的 PC 版前车之鉴。
+        .preferredColorScheme(.light)
+        .environment(\.colorScheme, .light)
         .tint(preferences.accent.color)
-        .background(HakoTheme.canvas(pureBlack: preferences.pureBlack).ignoresSafeArea())
+        .background(HakoTheme.canvas(pureBlack: false).ignoresSafeArea())
         .task {
 
 
@@ -527,7 +546,36 @@ struct AppShellView: View {
     }
 
     private var debugGateShell: some View {
-        goldenFlowShell
+        // 神仙云主界面是新的门面；上游那整套界面（节点选择、设置等）原样保留，
+        // 从主界面的「选择节点」「设置」进入。不改上游任何一个视图，
+        // 将来同步上游只需要重新套这一层。
+        Group {
+            if showsUpstreamShell {
+                // 上游界面没有回神仙云主界面的入口，进去就出不来了。
+                // 用 safeAreaInset 加一条细返回栏，不改上游任何视图。
+                goldenFlowShell
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        Button { showsUpstreamShell = false } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text(ShenxianyunProfile.appName)
+                                    .font(.system(size: 15, weight: .medium))
+                                Spacer()
+                            }
+                            .foregroundStyle(SXYTheme.purple)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 9)
+                            .background(SXYTheme.surface)
+                        }
+                        .buttonStyle(.plain)
+                    }
+            } else {
+                ShenxianyunHomeView(
+                    vpn: vpn, profiles: profiles, client: shenxianyunClient,
+                    openUpstream: { showsUpstreamShell = true })
+            }
+        }
     }
 
 

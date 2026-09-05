@@ -1582,7 +1582,7 @@ final class ClashCommandClient: ObservableObject, ProxyShareCommanding {
     }
 
     private static let urlTestLog = Logger(
-        subsystem: "org.example.hako", category: "urltest")
+        subsystem: "de.sxnn.shenxianyun", category: "urltest")
 
      
      

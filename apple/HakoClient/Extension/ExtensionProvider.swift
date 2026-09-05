@@ -91,7 +91,7 @@ final class ExtensionProvider: NSObject {
     private let reloadEnvelope = ProviderReloadEnvelope()
 
 
-    private let log = Logger(subsystem: "org.example.hako.demo.extension", category: "core")
+    private let log = Logger(subsystem: "de.sxnn.shenxianyun.demo.extension", category: "core")
 
      
      
@@ -101,7 +101,7 @@ final class ExtensionProvider: NSObject {
     private let physicalPathMonitorSession = PhysicalPathMonitorSession()
     private let pathQueueKey = DispatchSpecificKey<Void>()
     private lazy var pathQueue: DispatchQueue = {
-        let queue = DispatchQueue(label: "org.example.hako.pathmonitor")
+        let queue = DispatchQueue(label: "de.sxnn.shenxianyun.pathmonitor")
         queue.setSpecific(key: pathQueueKey, value: ())
         return queue
     }()

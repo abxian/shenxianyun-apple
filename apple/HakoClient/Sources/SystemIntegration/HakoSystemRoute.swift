@@ -87,7 +87,7 @@ extension Notification.Name {
  
 struct HakoSystemHandoff {
     static let appGroupIdentifier = HakoAppIdentifiers.appGroup
-    static let controlKind = "org.example.hako.vpn-control"
+    static let controlKind = "de.sxnn.shenxianyun.vpn-control"
 
      
      

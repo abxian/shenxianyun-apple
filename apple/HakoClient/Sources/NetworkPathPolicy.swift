@@ -280,7 +280,7 @@ final class NetworkPathObserver: ObservableObject {
     @Published private(set) var snapshot: NetworkPathSnapshot
 
     private let monitor: NWPathMonitor?
-    private let queue = DispatchQueue(label: "org.example.hako.path-policy", qos: .utility)
+    private let queue = DispatchQueue(label: "de.sxnn.shenxianyun.path-policy", qos: .utility)
 
     init(initialSnapshot: NetworkPathSnapshot? = nil, startMonitoring: Bool = true) {
         if let initialSnapshot {

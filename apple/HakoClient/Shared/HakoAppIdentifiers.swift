@@ -9,41 +9,41 @@
 
 enum HakoAppIdentifiers {
      
-    static let base = "org.example.hako"
+    static let base = "de.sxnn.shenxianyun"
 
      
-    static let appBundleID = "org.example.hako"
+    static let appBundleID = "de.sxnn.shenxianyun"
 
      
-    static let macAppBundleID = "org.example.hako"
+    static let macAppBundleID = "de.sxnn.shenxianyun"
 
      
-    static let tvAppBundleID = "org.example.hako"
+    static let tvAppBundleID = "de.sxnn.shenxianyun"
 
      
-    static let packetTunnelExtensionBundleID = "org.example.hako.extension"
+    static let packetTunnelExtensionBundleID = "de.sxnn.shenxianyun.extension"
 
      
-    static let macPacketTunnelExtensionBundleID = "org.example.hako.packet-tunnel"
+    static let macPacketTunnelExtensionBundleID = "de.sxnn.shenxianyun.packet-tunnel"
 
      
-    static let controlsExtensionBundleID = "org.example.hako.controls"
+    static let controlsExtensionBundleID = "de.sxnn.shenxianyun.controls"
 
      
-    static let shareExtensionBundleID = "org.example.hako.share"
+    static let shareExtensionBundleID = "de.sxnn.shenxianyun.share"
 
      
-    static let tvPacketTunnelExtensionBundleID = "org.example.hako.tvextension"
+    static let tvPacketTunnelExtensionBundleID = "de.sxnn.shenxianyun.tvextension"
 
      
-    static let appGroup = "group.org.example.hako"
+    static let appGroup = "group.de.sxnn.shenxianyun"
 
      
-    static let iCloudContainer = "iCloud.org.example.hako"
+    static let iCloudContainer = "iCloud.de.sxnn.shenxianyun"
 
      
-    static let backgroundRefreshTask = "org.example.hako.refresh"
+    static let backgroundRefreshTask = "de.sxnn.shenxianyun.refresh"
 
      
-    static let keychainService = "org.example.hako.credentials"
+    static let keychainService = "de.sxnn.shenxianyun.credentials"
 }

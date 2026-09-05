@@ -261,7 +261,7 @@ actor DNSResolverReachability {
         let transport = endpoint.transport
         return await withCheckedContinuation { continuation in
             let box = ProbeContinuationBox(continuation: continuation)
-            let queue = DispatchQueue(label: "org.example.hako.dns-probe")
+            let queue = DispatchQueue(label: "de.sxnn.shenxianyun.dns-probe")
             queue.asyncAfter(deadline: .now() + timeout) {
                 box.finish(.timedOut) { connection.cancel() }
             }

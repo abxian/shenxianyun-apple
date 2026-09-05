@@ -49,7 +49,7 @@ public enum HakoFrameCensus {
 }
 
 public enum HakoPerf {
-    public static let subsystem = "org.example.hako"
+    public static let subsystem = "de.sxnn.shenxianyun"
     public static let log = Logger(subsystem: subsystem, category: "perf")
     public static let signposter = OSSignposter(
         subsystem: subsystem, category: .pointsOfInterest

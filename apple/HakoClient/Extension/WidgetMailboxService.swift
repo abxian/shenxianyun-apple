@@ -15,7 +15,7 @@ import WidgetKit
 final class WidgetMailboxService {
     private unowned let provider: ExtensionProvider
     private let store: HakoWidgetMailboxStore
-    private let queue = DispatchQueue(label: "org.example.hako.widget.mailbox")
+    private let queue = DispatchQueue(label: "de.sxnn.shenxianyun.widget.mailbox")
     private var accounting = HakoWidgetInterfaceAccounting()
     private var interfaceKind: HakoWidgetInterfaceAccounting.Kind = .other
     private var phase: HakoWidgetPhase = .disconnected

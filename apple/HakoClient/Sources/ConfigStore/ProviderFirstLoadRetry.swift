@@ -45,7 +45,7 @@ enum ProviderFirstLoadRetry {
 
      
      
-    static let didRefreshNotification = Notification.Name("org.example.hako.provider.first-load.refreshed")
+    static let didRefreshNotification = Notification.Name("de.sxnn.shenxianyun.provider.first-load.refreshed")
 
      
      

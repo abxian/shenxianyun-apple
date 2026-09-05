@@ -16,9 +16,9 @@ public enum HakoWidgetMailbox {
     public static let snapshotFile = "widgets/snapshot.json"
      
     public static let appFile = "widgets/app.json"
-    public static let requestNotification = "org.example.hako.widget.request"
+    public static let requestNotification = "de.sxnn.shenxianyun.widget.request"
      
-    public static let updatedNotification = "org.example.hako.widget.updated"
+    public static let updatedNotification = "de.sxnn.shenxianyun.widget.updated"
      
      
     public static let waitForSnapshot: TimeInterval = 1.5
@@ -36,7 +36,7 @@ public enum HakoWidgetMailbox {
      
      
     public enum Kind {
-        public static let main = "org.example.hako.widget.main"
+        public static let main = "de.sxnn.shenxianyun.widget.main"
         public static let all = [main]
     }
 }

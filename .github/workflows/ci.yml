@@ -105,6 +105,13 @@ jobs:
           python3 -m venv /tmp/venv
           /tmp/venv/bin/pip install --quiet PyYAML
 
+      - name: 装 Go
+        # macos-26 runner 默认**没有** Go（首次跑 CI 就是挂在这里：go: command not found）。
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: false   # Go 缓存与下面的 SDK 缓存合并成一条，别重复
+
       - name: 装 bind 模块钉住的 Go 工具链
         # bind/hako 的 go.mod 钉死 toolchain go1.26.6。只有 GOTOOLCHAIN=auto
         # 下到模块缓存里的那份是不够的——build_libbox 要往 Go 源码树做 overlay，

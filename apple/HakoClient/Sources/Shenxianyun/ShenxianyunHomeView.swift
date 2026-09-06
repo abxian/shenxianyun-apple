@@ -13,6 +13,11 @@ struct ShenxianyunHomeView: View {
     /// 进入上游那套完整界面（节点选择、设置都在里面）。
     let openUpstream: () -> Void
 
+    /// 上游 AppShellView 也是用 horizontalSizeClass 判断布局的，这里沿用同一套，
+    /// 免得两层界面在 iPad 分屏时对宽度的理解不一致。
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    private var isRegularWidth: Bool { horizontalSizeClass == .regular }
+
     @State private var showsImport = false
     @State private var isWorking = false
     @State private var notice: String?
@@ -36,44 +41,7 @@ struct ShenxianyunHomeView: View {
     var body: some View {
         ZStack {
             SXYTheme.canvas
-            ScrollView {
-                VStack(spacing: 0) {
-                    header
-                    SXYPowerButton(
-                        isOn: isConnected,
-                        isBusy: isTransitioning || isWorking,
-                        action: togglePower)
-                        .padding(.top, 18)
-
-                    Text(isConnected ? "已连接" : "点此启动")
-                        .font(.system(size: 13))
-                        .foregroundStyle(SXYTheme.textMuted)
-                        .padding(.top, 14)
-
-                    statusRow.padding(.top, 10)
-
-                    if let notice {
-                        Text(notice)
-                            .font(.system(size: 12))
-                            .foregroundStyle(SXYTheme.textMuted)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                            .padding(.top, 8)
-                    }
-
-                    SXYModePicker(
-                        mode: command.mode,
-                        isEnabled: command.isConnected,
-                        select: setMode)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 18)
-
-                    actions.padding(.horizontal, 20).padding(.top, 16)
-                }
-                .frame(maxWidth: 520)
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 28)
-            }
+            if isRegularWidth { regularLayout } else { compactLayout }
         }
         .sheet(isPresented: $showsImport) {
             ShenxianyunImportView(client: client, onImported: handleImported)
@@ -81,6 +49,86 @@ struct ShenxianyunHomeView: View {
         }
         .task { await loadState() }
         .shenxianyunLight()
+    }
+
+    // MARK: - 两套布局
+
+    /// iPhone、以及 iPad 上分屏/侧拉挤成 compact 宽度时。单列居中。
+    private var compactLayout: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                brandColumn
+                controlColumn.padding(.top, 18)
+            }
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
+            .padding(.bottom, 28)
+        }
+    }
+
+    /// iPad 全屏。单列拉到 iPad 上会变成一条细带，中间大片空白。
+    /// 拆成左右两栏：左边是「状态与开关」，右边是「能做什么」——
+    /// 这也和用户的注意力顺序一致，先看连没连上，再决定要不要动它。
+    ///
+    /// 两个坑，都是实机截图才看出来的：
+    /// 1. 右栏原本单独套了 ScrollView。**ScrollView 会贪心占满可用高度**，
+    ///    于是右栏顶到天花板、左栏浮在中间，两栏完全不在一条线上。
+    ///    改成整体一个 ScrollView，两栏都是自然高度，`alignment: .center` 才生效。
+    /// 2. 光套 ScrollView 内容会顶到顶部。用 GeometryReader 量出视口高度再
+    ///    `minHeight:`，内容比屏幕矮时垂直居中、比屏幕高时照常滚动。
+    private var regularLayout: some View {
+        GeometryReader { geometry in
+            ScrollView {
+                HStack(alignment: .center, spacing: 56) {
+                    brandColumn.frame(width: 380)
+                    controlColumn.frame(width: 440)
+                }
+                .padding(.horizontal, 40)
+                .padding(.vertical, 32)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: geometry.size.height)
+            }
+        }
+    }
+
+    /// 左栏 / 上半：品牌、电源键、状态。
+    private var brandColumn: some View {
+        VStack(spacing: 0) {
+            header
+            SXYPowerButton(
+                isOn: isConnected,
+                isBusy: isTransitioning || isWorking,
+                action: togglePower)
+                .padding(.top, 18)
+
+            Text(isConnected ? "已连接" : "点此启动")
+                .font(.system(size: 13))
+                .foregroundStyle(SXYTheme.textMuted)
+                .padding(.top, 14)
+
+            statusRow.padding(.top, 10)
+
+            if let notice {
+                Text(notice)
+                    .font(.system(size: 12))
+                    .foregroundStyle(SXYTheme.textMuted)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 8)
+            }
+        }
+    }
+
+    /// 右栏 / 下半：模式切换与操作项。
+    private var controlColumn: some View {
+        VStack(spacing: 0) {
+            SXYModePicker(
+                mode: command.mode,
+                isEnabled: command.isConnected,
+                select: setMode)
+            actions.padding(.top, 16)
+        }
+        .padding(.horizontal, 20)
     }
 
     // MARK: - 分块

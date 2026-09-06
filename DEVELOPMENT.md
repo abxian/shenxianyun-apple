@@ -58,7 +58,7 @@ Clash、以及将来同族的 52nm 版**互相串扰**。`brand-apply.py` 先补
 | 东西 | 在哪改 |
 |---|---|
 | 权限说明文案 | 上游已做本地化，改 `**/zh-Hans.lproj/InfoPlist.strings`。`project.yml` 里那份英文只是兜底 |
-| 应用图标 | `apple/HakoClient/Resources/Branding/` 下的 xcassets |
+| 应用图标 | `Resources/Branding/AppIcon/AppIcon.icon/`（Xcode 26 Icon Composer 格式）。**已替换掉上游的猫**：`icon.json` 顶层 fill 是品牌渐变，两个 SVG 层是白云 + 紫闪电，路径逐字取自安卓 `ic_launcher_foreground.xml`。两个 SVG 的 `transform` 必须完全一致，否则两层错位。这是与上游冲突面之一，同步上游时注意 |
 | `Info.plist` / `entitlements` | **不要改**，它们是 XcodeGen 从 `project.yml` 生成的产物，已 gitignore |
 
 ## 本机构建

@@ -1,0 +1,10 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <title>神仙云 app icon — cloud body</title>
+  <desc>路径逐字取自安卓端 ic_launcher_foreground.xml 的云形（108 视口）。
+安卓那边是描边，图标这里改成实心：描边在 40pt 尺寸下会糊成一团，实心才认得出。
+transform 把 108 视口里 x18–90 / y15.5–73 的合成外框等比放到 1024 画布居中。</desc>
+  <g transform="translate(-13.0 81.8) scale(9.7222)">
+    <path fill="#FFFFFF"
+      d="M31,61H72.5C82.2,61 90,53.8 90,45C90,36.5 82.8,29.5 73.7,28.9C70.4,20.8 62.4,15.5 53,15.5C41.4,15.5 31.8,24 30.2,35.1C23.1,36.6 18,42.3 18,49.1C18,55.9 23.4,61 31,61Z"/>
+  </g>
+</svg>

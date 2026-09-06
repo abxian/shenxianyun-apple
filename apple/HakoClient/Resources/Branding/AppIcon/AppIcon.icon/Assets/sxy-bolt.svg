@@ -1,0 +1,11 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <title>神仙云 app icon — lightning bolt</title>
+  <desc>路径逐字取自安卓端 ic_launcher_foreground.xml 的闪电（108 视口），
+transform 与 sxy-cloud.svg 完全相同，两层才对得齐。
+安卓上闪电是青色画在浅背景上；图标这里背景是品牌渐变、云是实心白，
+青色在白底上对比不足，改用品牌紫 #7549F6（正是安卓 sxy_purple 的云描边色），
+两个品牌色都在，且 40pt 下还认得出。</desc>
+  <g transform="translate(-13.0 81.8) scale(9.7222)">
+    <path fill="#7549F6" d="M56,35L43.8,54H53.8L49.8,73L68,49.7H57.7L56,35Z"/>
+  </g>
+</svg>

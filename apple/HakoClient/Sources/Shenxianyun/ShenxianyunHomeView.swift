@@ -140,11 +140,16 @@ struct ShenxianyunHomeView: View {
                 subtitle: "刷新当前提取码的节点信息",
                 isBusy: isWorking, action: updateNodes)
 
-            SXYActionRow(
-                icon: "creditcard.fill",
-                title: accessCode == nil ? "新购提取码" : "续费提取码",
-                subtitle: accessCode == nil ? "打开购买页面获取提取码" : "在官网延长当前提取码",
-                trailing: .external, action: openPayment)
+            // 购买入口受 profile 开关控制。App Store 审核指南 3.1.3(f) 禁止
+            // 「calls to action for purchase outside of the app」，跳转支付页正属此类，
+            // 上架时必须关掉。用户从网站买好提取码后直接回来输入即可。
+            if ShenxianyunProfile.paymentEntryEnabled {
+                SXYActionRow(
+                    icon: "creditcard.fill",
+                    title: accessCode == nil ? "新购提取码" : "续费提取码",
+                    subtitle: accessCode == nil ? "打开购买页面获取提取码" : "在官网延长当前提取码",
+                    trailing: .external, action: openPayment)
+            }
 
             SXYActionRow(
                 icon: "gearshape.fill",

@@ -80,11 +80,16 @@ struct ShenxianyunImportView: View {
                 .disabled(trimmed.isEmpty || isWorking)
                 .padding(.horizontal, 24)
 
-                Button("没有提取码？去购买") {
-                    Task { await UIApplication.shared.open(client.purchaseURL()) }
+                // 同 ShenxianyunHomeView：3.1.3(f) 禁止应用内出现购买引导。
+                // 关闭时这里**什么都不显示**，连「请到官网购买」这类提示也不给——
+                // 那同样构成 call to action，Apple 拒过这种擦边写法。
+                if ShenxianyunProfile.paymentEntryEnabled {
+                    Button("没有提取码？去购买") {
+                        Task { await UIApplication.shared.open(client.purchaseURL()) }
+                    }
+                    .font(.system(size: 13))
+                    .foregroundStyle(SXYTheme.purple)
                 }
-                .font(.system(size: 13))
-                .foregroundStyle(SXYTheme.purple)
 
                 Spacer(minLength: 0)
             }
